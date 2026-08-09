@@ -4,6 +4,7 @@ pipeline {
     environment {
         STORAGE_ACCOUNT = "chunkhoundstorage"
         CONTAINER_NAME = "chunkhound-artifact"
+        SONAR_SCANNER_HOME = tool 'SonarScanner'
     }
 
     stages {
@@ -55,8 +56,20 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 sh '''
+                    echo "Running Unit Tests..."
                     uv run pytest || true
                 '''
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        echo "Running SonarQube Scanner..."
+                        "${SONAR_SCANNER_HOME}/bin/sonar-scanner"
+                    '''
+                }
             }
         }
 
@@ -67,7 +80,6 @@ pipeline {
                 '''
             }
         }
-
     }
 
     post {
