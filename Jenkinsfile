@@ -88,6 +88,29 @@ pipeline {
                 '''
             }
         }
+    
+
+    stage('Application Smoke Test') {
+    steps {
+        sh '''
+            echo "===== ChunkHound Smoke Test ====="
+
+            echo "Testing Python import..."
+            uv run python -c "import chunkhound; print('ChunkHound import: OK')"
+
+            echo "Testing CLI..."
+            uv run chunkhound --help > /tmp/chunkhound-help.txt
+
+            grep -q "index" /tmp/chunkhound-help.txt
+            grep -q "search" /tmp/chunkhound-help.txt
+
+            echo "Testing package version..."
+            uv run chunkhound --version
+
+            echo "===== Smoke Test PASSED ====="
+        '''
+             }
+         }
     }
 
     post {
