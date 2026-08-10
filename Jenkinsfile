@@ -99,10 +99,10 @@ pipeline {
             uv run python -c "import chunkhound; print('ChunkHound import: OK')"
 
             echo "Testing CLI..."
-            uv run chunkhound --help > /tmp/chunkhound-help.txt
+            uv run chunkhound --help > chunkhound-help.txt
 
-            grep -q "index" /tmp/chunkhound-help.txt
-            grep -q "search" /tmp/chunkhound-help.txt
+            grep -q "index" chunkhound-help.txt
+            grep -q "search" chunkhound-help.txt
 
             echo "Testing package version..."
             uv run chunkhound --version
