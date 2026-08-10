@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        STORAGE_ACCOUNT = "chunkhoundstorage"
+        STORAGE_ACCOUNT = "chunkhoundstorageaccount"
         CONTAINER_NAME = "chunkhound-artifact"
         SONAR_SCANNER_HOME = tool 'SonarScanner'
     }
@@ -88,10 +88,46 @@ pipeline {
                 '''
             }
         }
-    
 
-    stage('Application Smoke Test') {
+
+    stage('Upload Artifact') {
     steps {
+        withCredentials([
+            string(credentialsId: 'azure-storage-key', variable: 'AZURE_STORAGE_KEY')
+        ]) {
+            sh '''
+                set -e
+
+                echo "===== Uploading Artifact to Azure Blob Storage ====="
+
+                echo "Storage Account: ${STORAGE_ACCOUNT}"
+                echo "Container: ${CONTAINER_NAME}"
+
+                echo "Artifacts to upload:"
+                ls -lh dist/
+
+                for artifact in dist/*; do
+                    echo "Uploading $(basename "$artifact")..."
+
+                    az storage blob upload \
+                        --account-name "$STORAGE_ACCOUNT" \
+                        --account-key "$AZURE_STORAGE_KEY" \
+                        --container-name "$CONTAINER_NAME" \
+                        --name "$(basename "$artifact")" \
+                        --file "$artifact" \
+                        --overwrite true \
+                        --only-show-errors
+                done
+
+                echo "===== Artifact Upload Complete ====="
+            '''
+        }
+    }
+}
+
+
+     stage('Application Smoke Test') {
+      steps {
         sh '''
             echo "===== ChunkHound Smoke Test ====="
 
