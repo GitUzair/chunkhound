@@ -195,6 +195,19 @@ stage('Deploy to VM') {
                 "$VENV_DIR/bin/chunkhound" --version
 
                 echo "ChunkHound deployment completed successfully."
+ 
+                echo "===== Starting ChunkHound systemd service ====="
+
+                  sudo systemctl daemon-reload
+                  sudo systemctl enable chunkhound
+                  sudo systemctl restart chunkhound
+
+               echo "===== Verifying ChunkHound systemd service ====="
+
+                  sudo systemctl is-active --quiet chunkhound
+
+               echo "ChunkHound systemd service is active."
+                  sudo systemctl status chunkhound --no-pager -l
             '''
         }
     }
