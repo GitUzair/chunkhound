@@ -90,7 +90,7 @@ pipeline {
         }
 
 
-    stage('Upload Artifact') {
+    stage('Upload Artifact to Blob Storage') {
     steps {
         withCredentials([
             string(credentialsId: 'azure-storage-key', variable: 'AZURE_STORAGE_KEY')
@@ -125,29 +125,112 @@ pipeline {
     }
 }
 
+stage('Deploy to VM') {
+    steps {
+        withCredentials([
+            string(credentialsId: 'azure-storage-key', variable: 'AZURE_STORAGE_KEY')
+        ]) {
+            sh '''
+                set -e
 
-     stage('Application Smoke Test') {
-      steps {
-        sh '''
-            echo "===== ChunkHound Smoke Test ====="
+                echo "===== ChunkHound Deployment ====="
 
-            echo "Testing Python import..."
-            uv run python -c "import chunkhound; print('ChunkHound import: OK')"
+                DEPLOY_DIR="/opt/chunkhound"
+                VENV_DIR="$DEPLOY_DIR/venv"
 
-            echo "Testing CLI..."
-            uv run chunkhound --help > chunkhound-help.txt
+                echo "Creating deployment directory..."
 
-            grep -q "index" chunkhound-help.txt
-            grep -q "search" chunkhound-help.txt
+                sudo mkdir -p "$DEPLOY_DIR"
+                sudo chown -R jenkins:jenkins "$DEPLOY_DIR"
 
-            echo "Testing package version..."
-            uv run chunkhound --version
+                echo "Finding wheel artifact in Azure Blob Storage..."
 
-            echo "===== Smoke Test PASSED ====="
-        '''
-             }
-         }
+                WHEEL=$(az storage blob list \
+                    --account-name "$STORAGE_ACCOUNT" \
+                    --account-key "$AZURE_STORAGE_KEY" \
+                    --container-name "$CONTAINER_NAME" \
+                    --query "[?ends_with(name, '.whl')].name | [0]" \
+                    -o tsv)
+
+                if [ -z "$WHEEL" ]; then
+                    echo "ERROR: No wheel artifact found in Azure Blob Storage."
+                    exit 1
+                fi
+
+                echo "Selected artifact: $WHEEL"
+
+                echo "Downloading artifact..."
+
+                rm -f "$DEPLOY_DIR"/*.whl
+
+                az storage blob download \
+                    --account-name "$STORAGE_ACCOUNT" \
+                    --account-key "$AZURE_STORAGE_KEY" \
+                    --container-name "$CONTAINER_NAME" \
+                    --name "$WHEEL" \
+                    --file "$DEPLOY_DIR/$(basename "$WHEEL")" \
+                    --overwrite true \
+                    --only-show-errors
+
+                echo "Downloaded artifact:"
+                ls -lh "$DEPLOY_DIR"/*.whl
+
+                echo "Creating deployment virtual environment..."
+
+                if [ ! -d "$VENV_DIR" ]; then
+                    uv venv "$VENV_DIR" --python 3.12
+                fi
+
+                echo "Installing ChunkHound artifact..."
+
+                uv pip install \
+                    --python "$VENV_DIR/bin/python" \
+                    --force-reinstall \
+                    "$DEPLOY_DIR/$(basename "$WHEEL")"
+
+                echo "===== Deployment Verification ====="
+
+                "$VENV_DIR/bin/python" -c "import chunkhound; print('ChunkHound package installed: OK')"
+
+                "$VENV_DIR/bin/chunkhound" --version
+
+                echo "ChunkHound deployment completed successfully."
+            '''
+        }
     }
+}
+
+    stage('Application Smoke Test') {
+    steps {
+        sh '''
+            set -e
+
+            echo "===== ChunkHound Deployment Smoke Test ====="
+
+            DEPLOY_DIR="/opt/chunkhound"
+            VENV_DIR="$DEPLOY_DIR/venv"
+
+            echo "Testing deployed Python import..."
+
+            "$VENV_DIR/bin/python" -c \
+                "import chunkhound; print('ChunkHound import: OK')"
+
+            echo "Testing deployed CLI..."
+
+            "$VENV_DIR/bin/chunkhound" --help > "$DEPLOY_DIR/chunkhound-help.txt"
+
+            grep -q "index" "$DEPLOY_DIR/chunkhound-help.txt"
+            grep -q "search" "$DEPLOY_DIR/chunkhound-help.txt"
+
+            echo "Testing deployed package version..."
+
+            "$VENV_DIR/bin/chunkhound" --version
+
+            echo "===== Deployment Smoke Test PASSED ====="
+        '''
+      }
+  }
+}
 
     post {
         always {
