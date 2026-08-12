@@ -30,7 +30,7 @@
 
 <!-- Keep in sync with site/src/components/Hero.astro amplifier line -->
 <p align="center">
-  Local-first · Dozens of languages & file types · Cited answers · Git history research · Pinpoint web research
+  Local-first · Dozens of languages & file types · Cited answers · Git history research · Pinpoint web Research
 </p>
 
 <p align="center">
