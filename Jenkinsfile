@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        STORAGE_ACCOUNT = "chunkhoundstorage"
+        STORAGE_ACCOUNT = "chunkhoundartifacts2026"
         CONTAINER_NAME = "chunkhound-artifact"
         SONAR_SCANNER_HOME = tool 'SonarScanner'
     }
