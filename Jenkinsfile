@@ -271,19 +271,6 @@ ls -ld "$DEPLOY_DIR"
 
                 echo "ChunkHound deployment verified successfully."
 
-                echo "===== Restarting ChunkHound Service ====="
-
-                sudo systemctl restart chunkhound
-
-                sleep 3
-
-                sudo systemctl is-active --quiet chunkhound
-
-                echo "ChunkHound systemd service is active."
-
-                echo "===== Service Status ====="
-
-               sudo systemctl status chunkhound --no-pager -l
             '''
         }
     }
@@ -300,11 +287,6 @@ ls -ld "$DEPLOY_DIR"
 
             echo "===== ChunkHound Application Smoke Test ====="
 
-            echo "Checking systemd service..."
-
-            sudo systemctl is-active --quiet chunkhound
-
-            echo "Service is ACTIVE."
 
             echo "Testing deployed Python import..."
 
