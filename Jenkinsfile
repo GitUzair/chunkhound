@@ -184,10 +184,15 @@ stage('Deploy to VM') {
                 DEPLOY_DIR="/opt/chunkhound"
                 VENV_DIR="$DEPLOY_DIR/venv"
 
-                echo "Creating deployment directory..."
+                echo "Checking deployment directory..."
 
-                sudo mkdir -p "$DEPLOY_DIR"
-                sudo chown -R jenkins:jenkins "$DEPLOY_DIR"
+if [ ! -d "$DEPLOY_DIR" ]; then
+    echo "ERROR: Deployment directory $DEPLOY_DIR does not exist."
+    exit 1
+fi
+
+echo "Deployment directory exists:"
+ls -ld "$DEPLOY_DIR"
 
                 echo "Reading artifact produced by this pipeline..."
 
