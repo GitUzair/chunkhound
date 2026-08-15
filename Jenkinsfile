@@ -313,8 +313,85 @@ ls -ld "$DEPLOY_DIR"
 }
 
     post {
-        always {
-            archiveArtifacts artifacts: 'dist/*', fingerprint: true
-        }
+    always {
+        archiveArtifacts artifacts: 'dist/*', fingerprint: true
     }
+
+    success {
+        emailext(
+            subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            body: """
+Hello,
+
+The ChunkHound Jenkins pipeline completed successfully.
+
+Job: ${env.JOB_NAME}
+Build: #${env.BUILD_NUMBER}
+Status: SUCCESS
+
+Build URL:
+${env.BUILD_URL}
+
+Deployment:
+ChunkHound was successfully deployed to /opt/chunkhound.
+
+Verification:
+- chunkhound --version
+- chunkhound --help
+
+Regards,
+Jenkins
+""",
+            to: "YOUR_EMAIL@gmail.com"
+        )
+    }
+
+    failure {
+        emailext(
+            subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            body: """
+Hello,
+
+The ChunkHound Jenkins pipeline FAILED.
+
+Job: ${env.JOB_NAME}
+Build: #${env.BUILD_NUMBER}
+Status: FAILURE
+
+Build URL:
+${env.BUILD_URL}
+
+Please check the Jenkins console output for details.
+
+Regards,
+Jenkins
+""",
+            to: "YOUR_EMAIL@gmail.com"
+        )
+    }
+
+    unstable {
+        emailext(
+            subject: "UNSTABLE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            body: """
+Hello,
+
+The ChunkHound Jenkins pipeline completed but was marked UNSTABLE.
+
+Job: ${env.JOB_NAME}
+Build: #${env.BUILD_NUMBER}
+Status: UNSTABLE
+
+Build URL:
+${env.BUILD_URL}
+
+Please check the Jenkins console output for details.
+
+Regards,
+Jenkins
+""",
+            to: "YOUR_EMAIL@gmail.com"
+        )
+    }
+}
 }
